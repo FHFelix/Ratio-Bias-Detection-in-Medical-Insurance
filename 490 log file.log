@@ -1,0 +1,216 @@
+--------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/felixhuang/Desktop/490log.log
+  log type:  text
+ opened on:   3 Apr 2021, 21:39:33
+
+. 
+. use "/Users/felixhuang/Desktop/addwave4.dta"
+(National Longitudinal Study of Adolescent to Adult Health (Add Health), 1
+> 994-200)
+
+. 
+. keep H4HS1 H4IR4 H4LM25 H4LM4 H4OD1Y H4TO3
+
+. 
+. *create age variable
+. gen age=2008-H4OD1Y
+
+. 
+. *create y insurance variable where insuarance=1 as insurance with work, 
+> and insurance=0 as no insurance
+. gen insurance=1 if H4HS1==2 | H4HS1==3
+(2,482 missing values generated)
+
+. replace insurance=0 if H4HS1==1
+(1,084 real changes made)
+
+. drop if insurance==.
+(1,398 observations deleted)
+
+. 
+. *create race dummy variable where race=1 white, race=0 black; forcus on 
+> white and black
+. gen race=1 if H4IR4==1
+(1,077 missing values generated)
+
+. replace race=0 if H4IR4==2
+(932 real changes made)
+
+. 
+. *rename H4LM4 as fireNumber
+. rename H4LM4 fireNumber
+
+. drop if fireNumber>=97
+(61 observations deleted)
+
+. 
+. *create dummy variable: Supervised=1 as supervised others; Supervised=0 
+> as not supervise others
+. gen Supervised=1 if H4LM25==1 | H4LM25==2
+(2,276 missing values generated)
+
+. replace Supervised=0 if H4LM25==3
+(2,273 real changes made)
+
+. drop if Supervised==.
+(3 observations deleted)
+
+. 
+. *create dummy variable: smoke=1 and smoke=0
+. gen smoke=1 if H4TO3==1
+(1,998 missing values generated)
+
+. replace smoke=0 if H4TO3==0 | H4TO3==7
+(1,996 real changes made)
+
+. drop if smoke==.
+(2 observations deleted)
+
+. 
+. *summary statistic
+. sum insurance race Supervised fireNumber age smoke
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+   insurance |      3,650    .7145205    .4517044          0          1
+        race |      3,510    .7430199    .4370306          0          1
+  Supervised |      3,650    .3778082    .4849058          0          1
+  fireNumber |      3,650    .5512329    1.501522          0         50
+         age |      3,650    29.00712    1.771692         25         34
+-------------+---------------------------------------------------------
+       smoke |      3,650    .4531507    .4978685          0          1
+
+. sum insurance Supervised fireNumber if race==0
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+   insurance |        902    .6796009    .4668888          0          1
+  Supervised |        902    .3259424    .4689859          0          1
+  fireNumber |        902    .7372506    2.034859          0         50
+
+. sum insurance Supervised fireNumber if race==1
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+   insurance |      2,608    .7197086    .4492277          0          1
+  Supervised |      2,608    .3911043    .4880913          0          1
+  fireNumber |      2,608    .4988497    1.297958          0         29
+
+. 
+. *regression model
+. *OLS regression
+. reg insurance race Supervised fireNumber age smoke
+
+      Source |       SS           df       MS      Number of obs   =     3
+> ,510
+-------------+----------------------------------   F(5, 3504)      =     5
+> 1.17
+       Model |   49.238132         5  9.84762641   Prob > F        =    0.
+> 0000
+    Residual |  674.351612     3,504  .192451944   R-squared       =    0.
+> 0680
+-------------+----------------------------------   Adj R-squared   =    0.
+> 0667
+       Total |  723.589744     3,509  .206209673   Root MSE        =    .4
+> 3869
+
+--------------------------------------------------------------------------
+> ----
+   insurance |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Inter
+> val]
+-------------+------------------------------------------------------------
+> ----
+        race |    .058643   .0172624     3.40   0.001     .0247976    .092
+> 4884
+  Supervised |   .0535954   .0153446     3.49   0.000     .0235101    .083
+> 6807
+  fireNumber |  -.0432237   .0048881    -8.84   0.000    -.0528075     -.0
+> 3364
+         age |   .0091965   .0041833     2.20   0.028     .0009947    .017
+> 3984
+       smoke |  -.1742021   .0151292   -11.51   0.000    -.2038651   -.144
+> 5391
+       _cons |    .482321   .1222456     3.95   0.000     .2426412    .722
+> 0008
+--------------------------------------------------------------------------
+> ----
+
+. outreg2 using regressionResult, replace ctitle(OLS Regression)
+dir : seeout
+
+. vif
+
+    Variable |       VIF       1/VIF  
+-------------+----------------------
+        race |      1.04    0.963634
+       smoke |      1.03    0.966506
+  fireNumber |      1.01    0.986990
+  Supervised |      1.01    0.994238
+         age |      1.00    0.999504
+-------------+----------------------
+    Mean VIF |      1.02
+
+. hettest
+
+Breusch-Pagan / Cook-Weisberg test for heteroskedasticity 
+         Ho: Constant variance
+         Variables: fitted values of insurance
+
+         chi2(1)      =   212.54
+         Prob > chi2  =   0.0000
+
+. predict residuals,residual
+(140 missing values generated)
+
+. kdensity residuals,normal
+
+. 
+. *Probit regression
+. probit insurance race Supervised fireNumber age smoke
+
+Iteration 0:   log likelihood = -2115.4297  
+Iteration 1:   log likelihood =  -1999.317  
+Iteration 2:   log likelihood = -1998.8758  
+Iteration 3:   log likelihood = -1998.8758  
+
+Probit regression                               Number of obs     =      3
+> ,510
+                                                LR chi2(5)        =     23
+> 3.11
+                                                Prob > chi2       =     0.
+> 0000
+Log likelihood = -1998.8758                     Pseudo R2         =     0.
+> 0551
+
+--------------------------------------------------------------------------
+> ----
+   insurance |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Inter
+> val]
+-------------+------------------------------------------------------------
+> ----
+        race |   .1786452   .0531224     3.36   0.001     .0745272    .282
+> 7632
+  Supervised |   .1751385   .0479966     3.65   0.000     .0810669    .269
+> 2102
+  fireNumber |  -.1120565   .0138705    -8.08   0.000    -.1392422   -.084
+> 8708
+         age |   .0289273   .0129798     2.23   0.026     .0034874    .054
+> 3673
+       smoke |  -.5274804   .0466787   -11.30   0.000     -.618969   -.435
+> 9918
+       _cons |  -.1546569   .3788499    -0.41   0.683     -.897189    .587
+> 8752
+--------------------------------------------------------------------------
+> ----
+
+. outreg2 using regressionResult, append ctitle(Probit Regression)
+dir : seeout
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/felixhuang/Desktop/490log.log
+  log type:  text
+ closed on:   3 Apr 2021, 21:39:36
+--------------------------------------------------------------------------
